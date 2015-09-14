@@ -120,6 +120,7 @@ class CouchDBLogHandler(logging.StreamHandler, object):
         self.database = database
         self.port = port
         self.ssl = ssl
+        self.request_args = request_args
 
         if self.ssl:
             protocol = 'https'
@@ -143,18 +144,18 @@ class CouchDBLogHandler(logging.StreamHandler, object):
             database=database
         )
 
-        self.session = CouchDBSession(request_args=request_args)
+        session = CouchDBSession(request_args=self.request_args)
         if username:
-            self.session.post(self.url+'/_session', data={
+            session.post(self.url+'/_session', data={
                 'name': username,
                 'password': password
             })
 
         if create_database:
             try:
-                self.session.get(self.db_url)
+                session.get(self.db_url)
             except CouchDBSession.CouchDBException:
-                self.session.put(self.db_url)
+                session.put(self.db_url)
 
     def new_format(self, format_function):
         """
@@ -212,8 +213,9 @@ class CouchDBLogHandler(logging.StreamHandler, object):
         :param record: loggging record
         """
         headers = {'Content-type': 'application/json'}
+        session = CouchDBSession(request_args=self.request_args)
         try:
-            self.session.post(self.db_url, data=self.format(record), headers=headers)
+            session.post(self.db_url, data=self.format(record), headers=headers)
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
